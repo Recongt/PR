@@ -1,11 +1,11 @@
+package com.emil.pr;
+
+// dla 2 - 33 i 15
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import Jama.*;
-import java.util.*;
 
 /*
  * To change this template, choose Tools | Templates
@@ -376,7 +376,15 @@ public class PR_GUI extends javax.swing.JFrame {
         if(f_rb_sel.isSelected()){
             // the chosen strategy is feature selection
             int[] flags = new int[FeatureCount];
-            selectFeatures(flags,Integer.parseInt((String)selbox_nfeat.getSelectedItem()));
+      
+            int d = Integer.parseInt((String)selbox_nfeat.getSelectedItem());
+            //jeśli 1 do OneFeatureSelection
+            
+            OneFeatureSelection selection
+                    = new OneFeatureSelection(FeatureCount, F, ClassLabels, SampleCount);
+            FeatureSelectionResult result = selection.selectFeatures();
+            l_FLD_winner.setText("" + result.getSelectedFeatureIndex());
+            l_FLD_val.setText("" + result.getFisherRatio());
         }
         else if(f_rb_extr.isSelected()){
             double TotEnergy=Double.parseDouble(tf_PCA_Energy.getText())/100.0;
@@ -476,99 +484,6 @@ public class PR_GUI extends javax.swing.JFrame {
         }
         return s_out;
     }
-
-    private void getDatasetParameters() throws Exception{
-        // based on data stored in InData determine: class count and names, number of samples 
-        // and number of features; set the corresponding variables
-        String stmp=InData, saux="";
-        // analyze the first line and get feature count: assume that number of features
-        // equals number of commas
-        saux = InData.substring(InData.indexOf(',')+1, InData.indexOf('$'));
-        if(saux.length()==0) throw new Exception("The first line is empty");
-        // saux stores the first line beginning from the first comma
-        int count=0;
-        while(saux.indexOf(',') >0){
-            saux = saux.substring(saux.indexOf(',')+1);            
-            count++;
-        }
-        FeatureCount = count+1; // the first parameter
-        // Determine number of classes, class names and number of samples per class
-        boolean New;
-        int index=-1;
-        List<String> NameList = new ArrayList<String>();
-        List<Integer> CountList = new ArrayList<Integer>();
-        List<Integer> LabelList = new ArrayList<Integer>();
-        while(stmp.length()>1){
-            saux = stmp.substring(0,stmp.indexOf(' '));
-            New = true; 
-            index++; // new class index
-            for(int i=0; i<NameList.size();i++) 
-                if(saux.equals(NameList.get(i))) {
-                    New=false;
-                    index = i; // class index
-                }
-            if(New) {
-                NameList.add(saux);
-                CountList.add(0);
-            }
-            else{
-                CountList.set(index, CountList.get(index).intValue()+1);
-            }           
-            LabelList.add(index); // class index for current row
-            stmp = stmp.substring(stmp.indexOf('$')+1);
-        }
-        // based on results of the above analysis, create variables
-        ClassNames = new String[NameList.size()];
-        for(int i=0; i<ClassNames.length; i++)
-            ClassNames[i]=NameList.get(i);
-        SampleCount = new int[CountList.size()];
-        for(int i=0; i<SampleCount.length; i++)
-            SampleCount[i] = CountList.get(i).intValue()+1;
-        ClassLabels = new int[LabelList.size()];
-        for(int i=0; i<ClassLabels.length; i++)
-            ClassLabels[i] = LabelList.get(i).intValue();
-    }
-
-    private void fillFeatureMatrix() throws Exception {
-        // having determined array size and class labels, fills in the feature matrix
-        int n = 0;
-        String saux, stmp = InData;
-        for(int i=0; i<SampleCount.length; i++)
-            n += SampleCount[i];
-        if(n<=0) throw new Exception("no samples found");
-        F = new double[FeatureCount][n]; // samples are placed column-wise
-        for(int j=0; j<n; j++){
-            saux = stmp.substring(0,stmp.indexOf('$'));
-            saux = saux.substring(stmp.indexOf(',')+1);
-            for(int i=0; i<FeatureCount-1; i++) {
-                F[i][j] = Double.parseDouble(saux.substring(0,saux.indexOf(',')));
-                saux = saux.substring(saux.indexOf(',')+1);
-            }
-            F[FeatureCount-1][j] = Double.parseDouble(saux);
-            stmp = stmp.substring(stmp.indexOf('$')+1);
-        }
-        int cc = 1;
-    }
-
-    private void selectFeatures(int[] flags, int d) {
-        // for now: check all individual features using 1D, 2-class Fisher criterion
-
-        double FLD=0, tmp;
-        int max_ind=-1;        
-        for(int i=0; i<FeatureCount; i++){
-            if((tmp=computeFisherLD(F[i]))>FLD) {
-                FLD=tmp;
-                max_ind = i;
-            }
-            
-        }
-        
-        l_FLD_winner.setText(max_ind+"");
-        l_FLD_val.setText(FLD+"");
-        
-        // to do: compute for higher dimensional spaces, use e.g. SFS for candidate selection
-    }
-
     
     //podzielic na dwie macierze
     //:
@@ -597,27 +512,6 @@ public class PR_GUI extends javax.swing.JFrame {
         //Matrix.
     //}
     
-    private double computeFisherLD(double[] vec) {
-        // 1D, 2-classes
-        double mA=0, mB=0, sA=0, sB=0;
-        for(int i=0; i<vec.length; i++){
-            //która klasa, są dwie klasy
-            if(ClassLabels[i]==0) {
-                mA += vec[i];
-                sA += vec[i]*vec[i];
-            }
-            else {
-                mB += vec[i];
-                sB += vec[i]*vec[i];
-            }
-        }
-        mA /= SampleCount[0];
-        mB /= SampleCount[1];
-        sA = sA/SampleCount[0] - mA*mA;
-        sB = sB/SampleCount[1] - mB*mB;
-        return Math.abs(mA-mB)/(Math.sqrt(sA)+Math.sqrt(sB));
-    }
-
     private Matrix extractFeatures(Matrix C, double Ek, int k) {               
         
         Matrix evecs, evals;
@@ -689,56 +583,5 @@ public class PR_GUI extends javax.swing.JFrame {
     private double[][] projectSamples(Matrix FOld, Matrix TransformMat) {
         
         return (FOld.transpose().times(TransformMat)).transpose().getArrayCopy();
-    }
-}
-
-
-class Classifier {
-    
-    double[][] TrainingSet, TestSet;
-    int[] ClassLabels;
-    final int TRAIN_SET=0, TEST_SET=1;
-    
-    void generateTraining_and_Test_Sets(double[][] Dataset, String TrainSetSize){
-
-        int[] Index = new int[Dataset[0].length];
-        double Th = Double.parseDouble(TrainSetSize)/100.0;
-        int TrainCount=0, TestCount=0;
-        for(int i=0; i<Dataset[0].length; i++) 
-            if(Math.random()<=Th) {
-                Index[i]=TRAIN_SET;
-                TrainCount++;
-            }
-            else {
-                Index[i]=TEST_SET;
-                TestCount++;
-            }   
-        TrainingSet = new double[Dataset.length][TrainCount];
-        TestSet = new double[Dataset.length][TestCount];
-        TrainCount=0;
-        TestCount=0;
-        // label vectors for training/test sets
-        for(int i=0; i<Index.length; i++){
-            if(Index[i]==TRAIN_SET){
-                System.arraycopy(Dataset[i], 0, TrainingSet[TrainCount++], 0, Dataset[0].length);
-            }
-            else
-                System.arraycopy(Dataset[i], 0, TestSet[TestCount++], 0, Dataset[0].length);                
-        }
-    }
-    
-    protected void trainClissifier(double[][] TrainSet){
-        
-    }
-    
-}
-
-class NNClassifier extends Classifier {
-    
-    
-    
-    @Override
-    protected void trainClissifier(double[][] TrainSet){
-    
     }
 }
