@@ -13,13 +13,6 @@ public class FeatureDataSetParser {
     }
     
     public FeatureInputData parse() throws Exception {
-        getDatasetParameters();
-        fillFeatureMatrix();
-        
-        return this.data;
-    }
-    
-    private void getDatasetParameters() throws Exception {
         String stmp=content, saux="";
         // analyze the first line and get feature count: assume that number of features
         // equals number of commas
@@ -76,29 +69,7 @@ public class FeatureDataSetParser {
         for(int i=0; i<classLabels.length; i++)
             classLabels[i] = labelList.get(i);
         this.data.setClassLabels(classLabels);
-    }
-
-    private void fillFeatureMatrix() throws Exception {
-        // having determined array size and class labels, fills in the feature matrix
-        int n = 0;
-        String saux, stmp = this.content;
         
-        int[] sampleCount = this.data.getSampleCount();
-        for(int i=0; i<sampleCount.length; i++)
-            n += sampleCount[i];
-        if(n<=0) throw new Exception("no samples found");
-        F = new double[FeatureCount][n]; // samples are placed column-wise
-        for(int j=0; j<n; j++){
-            saux = stmp.substring(0,stmp.indexOf('$'));
-            saux = saux.substring(stmp.indexOf(',')+1);
-            for(int i=0; i<FeatureCount-1; i++) {
-                F[i][j] = Double.parseDouble(saux.substring(0,saux.indexOf(',')));
-                saux = saux.substring(saux.indexOf(',')+1);
-            }
-            F[FeatureCount-1][j] = Double.parseDouble(saux);
-            stmp = stmp.substring(stmp.indexOf('$')+1);
-        }
-        int cc = 1;
+        return this.data;
     }
-    
 }
