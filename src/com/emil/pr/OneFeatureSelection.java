@@ -1,19 +1,18 @@
 package com.emil.pr;
 
 public class OneFeatureSelection {
-    private int featureCount;
-    private double[][] featureMatrix;
-    private int[] classLabels;
-    private int[] sampleCount;
+    private final int featureCount;
+    private final double[][] featureMatrix;
+    private final int[] classLabels;
+    private final int[] sampleCount;
 
-    public OneFeatureSelection(int featureCount, double[][] featureMatrix,
-                               int[] classLabels, int[] sampleCount) {
-        this.featureCount = featureCount;
-        this.featureMatrix = featureMatrix;
-        this.classLabels = classLabels;
-        this.sampleCount = sampleCount;
+    public OneFeatureSelection(FeatureInputData data) {
+        this.featureCount = data.getFeatureCount();
+        this.featureMatrix = data.getF();
+        this.classLabels = data.getClassLabels();
+        this.sampleCount = data.getSampleCount();
     }
-
+    
     public FeatureSelectionResult selectFeatures() {
         FeatureSelectionResult result = new FeatureSelectionResult();
         // for now: check all individual features using 1D, 2-class Fisher criterion
@@ -52,6 +51,8 @@ public class OneFeatureSelection {
         mB /= sampleCount[1];
         sA = sA/sampleCount[0] - mA*mA;
         sB = sB/sampleCount[1] - mB*mB;
-        return Math.abs(mA-mB)/(Math.sqrt(sA)+Math.sqrt(sB));
+        
+        double result = Math.abs(mA-mB)/(Math.sqrt(sA)+Math.sqrt(sB));
+        return result;
     }
 }

@@ -24,7 +24,9 @@ import Jama.*;
  */
 public class PR_GUI extends javax.swing.JFrame {
 
-    String InData; // dataset from a text file will be placed here
+    private String fileContent;
+    private FeatureInputData inputData;
+    
     int ClassCount=0, FeatureCount=0;
     double[][] F, FNew; // original feature matrix and transformed feature matrix
     int[] ClassLabels, SampleCount;
@@ -352,17 +354,27 @@ public class PR_GUI extends javax.swing.JFrame {
 
     private void b_readActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_b_readActionPerformed
         // reads in a text file; contents is placed into a variable of String type
-        InData = readDataSet();
+        fileContent = readDataSet();
     }//GEN-LAST:event_b_readActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         // Analyze text inputted from a file: determine class number and labels and number
         // of features; build feature matrix: columns - samples, rows - features
         try {
-            if(InData!=null) {
-                getDatasetParameters();
+            if(fileContent!=null) {
+                FeatureDataSetParser parser = new FeatureDataSetParser(fileContent);
+                this.inputData = parser.parse();
+                
+                FeatureMatrixFiller filler = new FeatureMatrixFiller();
+                filler.fill(fileContent, this.inputData);
+                
+                this.ClassLabels = this.inputData.getClassLabels();
+                this.ClassNames = this.inputData.getClassNames();
+                this.F = this.inputData.getF();
+                this.FeatureCount = this.inputData.getFeatureCount();
+                this.SampleCount = this.inputData.getSampleCount();
+                
                 l_nfeatures.setText(FeatureCount+"");
-                fillFeatureMatrix();
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,ex.getMessage());
@@ -380,9 +392,9 @@ public class PR_GUI extends javax.swing.JFrame {
             int d = Integer.parseInt((String)selbox_nfeat.getSelectedItem());
             //jeśli 1 do OneFeatureSelection
             
-            OneFeatureSelection selection
-                    = new OneFeatureSelection(FeatureCount, F, ClassLabels, SampleCount);
+            OneFeatureSelection selection = new OneFeatureSelection(this.inputData);
             FeatureSelectionResult result = selection.selectFeatures();
+            
             l_FLD_winner.setText("" + result.getSelectedFeatureIndex());
             l_FLD_val.setText("" + result.getFisherRatio());
         }
@@ -467,7 +479,6 @@ public class PR_GUI extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
     private String readDataSet() {
-
         String s_tmp, s_out="";
         JFileChooser jfc = new JFileChooser();
         jfc.setCurrentDirectory(new File(".."));
